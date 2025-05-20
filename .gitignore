@@ -1,0 +1,14 @@
+# Ignore local environment config
+.env
+
+# Docker volumes
+db_data/
+
+# Editor junk
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
