@@ -1,15 +1,41 @@
-# Vault – Enterprise IAM Sandbox
+# Vault
 
-Secure bootstrap: Keycloak 26.2.4 + Postgres with environment isolation.
+![GitHub issues](https://img.shields.io/github/issues/lyfe691/vault?style=flat-square&color=green)
+![GitHub last commit](https://img.shields.io/github/last-commit/lyfe691/vault?style=flat-square&color=purple)
+![GitHub repo size](https://img.shields.io/github/repo-size/lyfe691/vault?style=flat-square&color=orange)
+![GitHub](https://img.shields.io/github/license/lyfe691/vault?style=flat-square&color=yellow)
+![Visitors](https://visitor-badge.laobi.icu/badge?page_id=lyfe691.vault&style=flat-square&color=teal)
+
+OIDC sandbox environment powered by Keycloak, FastAPI, and Docker — built for real-world IAM testing.
+ 
+> Built with Keycloak, FastAPI, and Docker Compose.
+
+## Stack
+
+- Keycloak 26 (OIDC)
+- FastAPI (JWT validation)
+- PostgreSQL
+- Terraform (realm, client, user provisioning)
+
+## Quickstart
+
+```bash
+git clone https://github.com/lyfe691/vault
+cd vault
+cp .env.example .env # adjust as needed.
+docker compose up --build -d
+```
 
 ## Prerequisites
+- Windows 11 with Docker Desktop (WSL2 backend)
+- Ubuntu 22.04 LTS (WSL2)
+- docker compose CLI
 
-- Windows 11 with Docker Desktop (WSL 2 backend)
-- Ubuntu WSL2 distro (e.g. 22.04)
-- `docker compose` CLI
+---
 
-1. clone
-2. .env
-3. deploy (docker compose up -d)
+## License
 
-more to come.
+[MIT](LICENSE) © [Yanis Sebastian Zürcher](https://ysz.life)
+
+
+
