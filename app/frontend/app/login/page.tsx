@@ -24,6 +24,7 @@ export default function LoginPage() {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
+                credentials: 'include',
                 body: new URLSearchParams({
                     username, 
                     password,

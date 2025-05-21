@@ -13,10 +13,12 @@ app = FastAPI()
 # Allow Next.js frontend running at localhost:3000
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # or ["*"] during dev
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600
 )
 
 security = HTTPBearer()
