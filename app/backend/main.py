@@ -21,7 +21,7 @@ app.add_middleware(
 
 security = HTTPBearer()
 
-KEYCLOAK_INTERNAL_URL = "http://vault-idp:8080"
+KEYCLOAK_INTERNAL_URL = "http://localhost:8080"
 REALM = "vault-core"
 OIDC_CONFIG_URL = f"{KEYCLOAK_INTERNAL_URL}/realms/{REALM}/.well-known/openid-configuration"
 ISSUER = f"http://localhost:8080/realms/{REALM}"  # must match token
@@ -36,7 +36,7 @@ async def get_jwk_set():
             raise Exception("Failed to fetch OIDC config")
 
         config = config_response.json()
-        jwks_uri = config["jwks_uri"].replace("localhost", "vault-idp")
+        jwks_uri = config["jwks_uri"]
 
         jwks_response = await client.get(jwks_uri)
         if jwks_response.status_code != 200:
@@ -121,7 +121,7 @@ async def login(
     password: str = Form(...),
 ):
     async with httpx.AsyncClient() as client: 
-        res = await client.post("http://vault-idp:8080/realms/vault-core/protocol/openid-connect/token",
+        res = await client.post("http://localhost:8080/realms/vault-core/protocol/openid-connect/token",
             headers={"Content-Type": "application/x-www-form-urlencoded"},
             data={
                 "client_id": "vault-app",

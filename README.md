@@ -26,6 +26,27 @@ cp .env.example .env # adjust as needed.
 docker compose up --build -d
 ```
 
+### Dev mode: 
+
+1. Start keycloak and db    
+```bash
+docker compose up -d db keycloak
+```
+
+2. Start backend
+```bash
+cd app/backend
+source venv/bin/activate
+uvicorn main:app --reload --host 0.0.0.0 --port 5000
+```
+
+3. Start frontend
+```bash
+cd app/frontend
+npm run dev
+```
+
+
 ## Prerequisites
 - Windows 11 with Docker Desktop (WSL2 backend)
 - Ubuntu 22.04 LTS (WSL2)

@@ -1,24 +1,6 @@
 version: "3.8"
 
 services:
-  api: 
-    build: ./app/backend
-    container_name: vault-api
-    ports: 
-      - "5000:5000"
-    networks: 
-      - "vault-net"
-    depends_on:
-      - keycloak
-  frontend:
-    build: ./app/frontend
-    container_name: vault-frontend
-    ports:
-      - "3000:3000"
-    networks:
-      - vault-net
-    depends_on:
-      - api
   db:
     image: postgres:16
     container_name: vault-db
@@ -28,6 +10,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     networks:
       - vault-net
 
