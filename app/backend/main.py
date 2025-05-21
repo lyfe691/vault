@@ -1,8 +1,11 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt
 import httpx
+from typing import List, Optional
 
 app = FastAPI()
+security = HTTPBearer()
 
 KEYCLOAK_INTERNAL_URL = "http://vault-idp:8080"
 REALM = "vault-core"
@@ -27,18 +30,11 @@ async def get_jwk_set():
 
         return jwks_response.json()
 
-
-# this endpoint is used to validate the JWT token and return user information
-@app.get("/me")
-async def read_user(request: Request):
-    auth_header = request.headers.get("authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
-
-    token = auth_header[len("Bearer "):]
+# verify and decode the JWT token
+async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
     try:
         jwks = await get_jwk_set()
-
         payload = jwt.decode(
             token,
             key=jwks,
@@ -46,12 +42,61 @@ async def read_user(request: Request):
             audience="account",
             issuer=ISSUER
         )
-
-        return {"user": payload}
-
+        return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.JWTClaimsError as e:
         raise HTTPException(status_code=401, detail=f"Invalid claims: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"JWT validation failed: {str(e)}")
+        raise HTTPException(status_code=401, detail=f"JWT validation failed: {str(e)}")
+
+# check if user has required roles
+def has_role(payload: dict, required_roles: List[str]) -> bool:
+    if not payload.get("realm_access") or not payload["realm_access"].get("roles"):
+        return False
+    
+    user_roles = payload["realm_access"]["roles"]
+    return any(role in user_roles for role in required_roles)
+
+# require specific roles
+def require_roles(roles: List[str]):
+    async def role_checker(payload: dict = Depends(verify_token)):
+        if not has_role(payload, roles):
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Access denied. Required roles: {', '.join(roles)}"
+            )
+        return payload
+    return role_checker
+
+# public endpoint;  no authentication required
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the Vault API. Use /me to get user info or /admin for admin functions"}
+
+# this endpoint is used to validate the JWT token and return user information
+@app.get("/me")
+async def read_user(payload: dict = Depends(verify_token)):
+    return {"user": payload}
+
+# admin only endpoint
+@app.get("/admin")
+async def admin_only(payload: dict = Depends(require_roles(["admin"]))):
+    return {
+        "message": "Admin access granted",
+        "user_info": {
+            "username": payload.get("preferred_username", "unknown"),
+            "roles": payload.get("realm_access", {}).get("roles", [])
+        }
+    }
+
+# user only endpoint
+@app.get("/user")
+async def user_only(payload: dict = Depends(require_roles(["user"]))):
+    return {
+        "message": "User access granted",
+        "user_info": {
+            "username": payload.get("preferred_username", "unknown"),
+            "roles": payload.get("realm_access", {}).get("roles", [])
+        }
+    }
