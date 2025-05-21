@@ -10,6 +10,15 @@ services:
       - "vault-net"
     depends_on:
       - keycloak
+  frontend:
+    build: ./app/frontend
+    container_name: vault-frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - vault-net
+    depends_on:
+      - api
   db:
     image: postgres:16
     container_name: vault-db

@@ -1,10 +1,24 @@
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Form
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+
 from jose import jwt
 import httpx
 from typing import List, Optional
 
 app = FastAPI()
+
+# Allow Next.js frontend running at localhost:3000
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # or ["*"] during dev
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 security = HTTPBearer()
 
 KEYCLOAK_INTERNAL_URL = "http://vault-idp:8080"
@@ -100,3 +114,21 @@ async def user_only(payload: dict = Depends(require_roles(["user"]))):
             "roles": payload.get("realm_access", {}).get("roles", [])
         }
     }
+
+@app.post("/login")
+async def login(
+    username: str = Form(...),
+    password: str = Form(...),
+):
+    async with httpx.AsyncClient() as client: 
+        res = await client.post("http://vault-idp:8080/realms/vault-core/protocol/openid-connect/token",
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            data={
+                "client_id": "vault-app",
+                "client_secret": "vault-client-secret",
+                "grant_type": "password",
+                "username": username,
+                "password": password,
+            }
+        )
+        return JSONResponse(status_code=res.status_code, content=res.json())
