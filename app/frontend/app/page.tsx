@@ -1,43 +1,120 @@
-import Image from "next/image";
-import Link from "next/link";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/useAuth";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { User, Shield, LogOut } from "lucide-react";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/vault.png"
-          alt="Vault logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by logging in.
-          </li>
-          <li className="tracking-[-.01em]">
-            Explore.
-          </li>
-        </ol>
+  const { isAuthenticated, isLoading, payload, checkRole, logout } = useAuth();
+  const router = useRouter();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <Link
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="/login"
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Vault</CardTitle>
+            <CardDescription>
+              Internal tool access portal
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => router.push("/login")}
+              className="w-full"
+              size="lg"
+            >
+              Sign In
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">Welcome back</CardTitle>
+          <CardDescription>
+            {payload?.preferred_username && (
+              <>Hello, <span className="font-medium">{payload.preferred_username}</span></>
+            )}
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          <div className="flex justify-center">
+            <div className="flex gap-2">
+              {checkRole("admin") && (
+                <Badge variant="secondary" className="gap-1">
+                  <Shield className="h-3 w-3" />
+                  Admin
+                </Badge>
+              )}
+              {checkRole("user") && (
+                <Badge variant="outline" className="gap-1">
+                  <User className="h-3 w-3" />
+                  User
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {checkRole("admin") && (
+              <Button 
+                onClick={() => router.push("/admin")}
+                className="w-full"
+                variant="default"
+              >
+                Admin Dashboard
+              </Button>
+            )}
+            
+            {checkRole("user") && (
+              <Button 
+                onClick={() => router.push("/user")}
+                className="w-full"
+                variant={checkRole("admin") ? "outline" : "default"}
+              >
+                User Dashboard
+              </Button>
+            )}
+          </div>
+
+          <Button 
+            onClick={handleLogout}
+            variant="ghost"
+            className="w-full gap-2"
           >
-            Login
-          </Link>
-          <Link
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://github.com/lyfer69/vault"
-            target="_blank"
-          >
-            GitHub
-          </Link>
-        </div>
-      </main>
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
