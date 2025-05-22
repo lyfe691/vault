@@ -1,5 +1,7 @@
 version: "3.8"
 
+# frontend and backend have been left out for now.
+
 services:
   db:
     image: postgres:16
