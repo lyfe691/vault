@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt
 import httpx
 from typing import List, Optional
+from datetime import datetime, timedelta
 
 app = FastAPI()
 
@@ -21,7 +22,7 @@ app.add_middleware(
     max_age=600
 )
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 KEYCLOAK_INTERNAL_URL = "http://localhost:8080"
 REALM = "vault-core"
@@ -47,8 +48,17 @@ async def get_jwk_set():
         return jwks_response.json()
 
 # verify and decode the JWT token
-async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
+async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security), request: Request = None):
+    token = None
+    
+    if credentials:
+        token = credentials.credentials
+    elif request and "access_token" in request.cookies:
+        token = request.cookies.get("access_token")
+    
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing authentication token")
+        
     try:
         jwks = await get_jwk_set()
         payload = jwt.decode(
@@ -92,7 +102,7 @@ async def root():
 
 # this endpoint is used to validate the JWT token and return user information
 @app.get("/me")
-async def read_user(payload: dict = Depends(verify_token)):
+async def read_user(request: Request, payload: dict = Depends(verify_token)):
     return {"user": payload}
 
 # admin only endpoint
@@ -117,6 +127,7 @@ async def user_only(payload: dict = Depends(require_roles(["user"]))):
         }
     }
 
+# login endpoint
 @app.post("/login")
 async def login(
     username: str = Form(...),
@@ -133,4 +144,31 @@ async def login(
                 "password": password,
             }
         )
-        return JSONResponse(status_code=res.status_code, content=res.json())
+        
+        if res.status_code == 200:
+            token_data = res.json()
+            access_token = token_data["access_token"]
+            
+            expires_in = token_data.get("expires_in", 300)
+            
+            response = JSONResponse(status_code=200, content={"message": "Login successful"})
+            
+            response.set_cookie(
+                key="access_token",
+                value=access_token,
+                httponly=True,
+                secure=False,
+                samesite="lax",
+                max_age=expires_in,
+                path="/"
+            )
+            
+            return response
+        else:
+            return JSONResponse(status_code=res.status_code, content=res.json())
+
+@app.post("/logout")
+async def logout():
+    response = JSONResponse(status_code=200, content={"message": "Logged out successfully"})
+    response.delete_cookie(key="access_token", path="/")
+    return response

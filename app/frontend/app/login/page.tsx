@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { parseJwt, TokenPayload } from "@/lib/auth";
 import { useAuth } from "@/lib/useAuth";
 import { AlertCircle } from "lucide-react";
 
@@ -13,31 +12,14 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const [token, setToken] = useState("");
-    const [tokenInfo, setTokenInfo] = useState<TokenPayload | null>(null);
     const router = useRouter();
-    const { isAuthenticated, isLoading } = useAuth();
+    const { isAuthenticated, isLoading, refreshAuth } = useAuth();
 
     useEffect(() => {
         if (!isLoading && isAuthenticated) {
             router.push("/user");
         }
     }, [isLoading, isAuthenticated, router]);
-
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const storedToken = localStorage.getItem("access_token");
-            if (storedToken) {
-                setToken(storedToken);
-                try {
-                    const decoded = parseJwt(storedToken);
-                    setTokenInfo(decoded);
-                } catch (error) {
-                    console.error("Error decoding token:", error);
-                }
-            }
-        }
-    }, []);
 
     const handleLogin = async () => {
         setLoading(true);
@@ -48,56 +30,27 @@ export default function LoginPage() {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                credentials: 'include',
+                credentials: 'include', // Important: This sends and receives cookies
                 body: new URLSearchParams({
                     username, 
                     password,
                 }),
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error_description || "Login failed");
             
-            localStorage.setItem("access_token", data.access_token);
-            setToken(data.access_token);
-            
-            try {
-                const decoded = parseJwt(data.access_token);
-                setTokenInfo(decoded);
-                console.log("Token decoded successfully:", decoded);
-                
-                const validationRes = await fetch("http://localhost:5000/me", {
-                    method: "GET",
-                    headers: {
-                        "Authorization": `Bearer ${data.access_token}`
-                    }
-                });
-                
-                if (validationRes.ok) {
-                    console.log("Token validated with backend");
-                    if (decoded?.realm_access?.roles?.includes('user')) {
-                        router.push("/user");
-                    } else {
-                        console.warn("Token does not have 'user' role:", decoded?.realm_access?.roles);
-                    }
-                } else {
-                    throw new Error("Token validation failed");
-                }
-            } catch (error) {
-                console.error("Error validating token:", error);
-                setError("Authentication successful but token validation failed");
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error_description || "Login failed");
             }
+            
+            await refreshAuth();
+            
+            router.push("/user");
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Something went wrong";
             setError(message);
         } finally {
             setLoading(false);
         }
-    }
-
-    const clearToken = () => {
-        localStorage.removeItem("access_token");
-        setToken("");
-        setTokenInfo(null);
     }
 
     if (isLoading) {
@@ -136,12 +89,6 @@ export default function LoginPage() {
                 {loading ? "Logging in..." : "Login"}
             </Button>
 
-            {token && (
-                <Button onClick={clearToken} variant="outline" className="w-full mt-2">
-                    Clear Token
-                </Button>
-            )}
-
             <p className="text-sm text-gray-500 mt-4">
                 Demo credentials: demo, password: pass1234 
             </p>
@@ -152,33 +99,6 @@ export default function LoginPage() {
                     <p className="text-red-500 text-sm">
                         {error}
                     </p>
-                </div>
-            )}
-
-            {/* no success message cause we're getting redirected or showing the token anyway */}
-
-            {token && (
-                <div className="mt-6">
-                    <h2 className="text-lg font-bold mb-2">Token</h2>
-                    <pre className="bg-gray-100 p-4 rounded-md overflow-auto max-h-40 text-xs">
-                        {token}
-                    </pre>
-                    
-                    {tokenInfo && (
-                        <>
-                            <h2 className="text-lg font-bold mb-2 mt-4">Decoded Token</h2>
-                            <pre className="bg-gray-100 p-4 rounded-md overflow-auto max-h-60 text-xs">
-                                {JSON.stringify(tokenInfo, null, 2)}
-                            </pre>
-                            
-                            <h3 className="font-bold mt-4">Roles:</h3>
-                            <ul className="list-disc pl-5">
-                                {tokenInfo.realm_access?.roles?.map((role: string) => (
-                                    <li key={role}>{role}</li>
-                                )) || <li>No roles found</li>}
-                            </ul>
-                        </>
-                    )}
                 </div>
             )}
         </div>
