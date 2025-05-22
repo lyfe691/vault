@@ -59,11 +59,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuthentication = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await AuthApi.getUserInfo();
-      setPayload(data.user);
-      setIsAuthenticated(true);
+      const result = await AuthApi.getUserInfo();
+      
+      if (result.authenticated && result.data) {
+        setPayload(result.data.user);
+        setIsAuthenticated(true);
+      } else {
+        setPayload(null);
+        setIsAuthenticated(false);
+      }
     } catch (error) {
-      console.error("Error checking authentication:", error);
+      console.error("Unexpected error checking authentication:", error);
       setPayload(null);
       setIsAuthenticated(false);
     } finally {

@@ -5,6 +5,7 @@ interface LoginCredentials {
   password: string;
 }
 
+// Standard fetch with error handling
 async function fetchApi(
   endpoint: string,
   options: RequestInit = {}
@@ -23,12 +24,37 @@ async function fetchApi(
     throw new Error(error.error_description || error.message || response.statusText);
   }
 
-
   if (response.headers.get('content-type')?.includes('application/json')) {
     return await response.json();
   }
   
   return true;
+}
+
+// Authentication check that doesn't throw on 401
+async function fetchAuthCheck(endpoint: string): Promise<{ authenticated: boolean; data?: any }> {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    credentials: 'include',
+  });
+  
+  if (response.status === 401) {
+    return { authenticated: false };
+  }
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({
+      message: 'An unknown error occurred'
+    }));
+    console.warn("API error:", error);
+    return { authenticated: false };
+  }
+
+  if (response.headers.get('content-type')?.includes('application/json')) {
+    const data = await response.json();
+    return { authenticated: true, data };
+  }
+  
+  return { authenticated: true };
 }
 
 export const AuthApi = {
@@ -52,17 +78,18 @@ export const AuthApi = {
     });
   },
   
+  // Using the non-throwing version for auth checks
   getUserInfo: async () => {
-    return fetchApi('/me');
+    return fetchAuthCheck('/me');
   },
   
   checkAdminAccess: async () => {
-    return fetchApi('/admin');
+    return fetchAuthCheck('/admin');
   },
   
   checkUserAccess: async () => {
-    return fetchApi('/user');
+    return fetchAuthCheck('/user');
   },
 };
 
-export { fetchApi }; 
+export { fetchApi, fetchAuthCheck }; 
