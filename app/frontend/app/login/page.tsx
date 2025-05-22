@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import { AlertCircle } from "lucide-react";
@@ -34,15 +37,9 @@ export default function LoginPage() {
         setError("");
         try {
             await AuthApi.login({ username, password });
-            
-            // Successfully logged in, refresh authentication state
             await refreshAuth();
-            
-            // Get appropriate redirect path based on user roles
             const redirectPath = getRedirectPath();
             toast.success("Login successful");
-            
-            // Redirect to the appropriate page
             router.push(redirectPath);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Something went wrong";
@@ -61,54 +58,76 @@ export default function LoginPage() {
 
     if (isLoading) {
         return (
-            <div className="max-w-md mx-auto py-12">
-                <p>Checking authentication status...</p>
+            <div className="min-h-screen flex items-center justify-center">
+                <Card className="w-full max-w-md">
+                    <CardContent className="pt-6">
+                        <p className="text-center text-muted-foreground">Checking authentication status...</p>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
 
     return (
-        <div className="max-w-md mx-auto py-12">
-            <h1 className="text-2xl font-bold mb-6">Login</h1>
+        <div className="min-h-screen flex items-center justify-center p-4">
+            <Card className="w-full max-w-md">
+                <CardHeader className="text-center">
+                    <CardTitle className="text-2xl">Welcome back</CardTitle>
+                    <CardDescription>
+                        Enter your credentials to access your account
+                    </CardDescription>
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="username">Username</Label>
+                        <Input
+                            id="username"
+                            type="text"
+                            placeholder="Enter your username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            disabled={loading}
+                            onKeyDown={handleKeyDown}
+                        />
+                    </div>
 
-            <Input
-                type="text"
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="mb-4"
-                required
-                disabled={loading}
-                onKeyDown={handleKeyDown}
-            />
+                    <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                            id="password"
+                            type="password"
+                            placeholder="Enter your password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            disabled={loading}
+                            onKeyDown={handleKeyDown}
+                        />
+                    </div>
 
-            <Input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mb-4"
-                required
-                disabled={loading}
-                onKeyDown={handleKeyDown}
-            />
+                    {error && (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
 
-            <Button onClick={handleLogin} disabled={loading} className="w-full">
-                {loading ? "Logging in..." : "Login"}
-            </Button>
+                    <Button 
+                        onClick={handleLogin} 
+                        disabled={loading} 
+                        className="w-full"
+                        size="lg"
+                    >
+                        {loading ? "Signing in..." : "Sign in"}
+                    </Button>
+                </CardContent>
 
-            <p className="text-sm text-gray-500 mt-4">
-                Demo credentials: demo, password: pass1234 
-            </p>
-
-            {error && (
-                <div className="mt-4 bg-red-100 p-3 rounded-md border border-red-300 flex items-start space-x-2">
-                    <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-red-500 text-sm">
-                        {error}
+                <CardFooter>
+                    <p className="text-sm text-muted-foreground text-center w-full">
+                        Demo credentials: <span className="font-medium">demo</span> / <span className="font-medium">pass1234</span>
                     </p>
-                </div>
-            )}
+                </CardFooter>
+            </Card>
         </div>
-    )
+    );
 }
