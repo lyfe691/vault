@@ -36,6 +36,7 @@ export default function UserPage() {
                 <p>You need to be authenticated to view this page.</p>
                 <Button 
                     onClick={() => router.push("/login")}
+                    className="mt-4"
                 >
                     Go to Login
                 </Button>
@@ -49,6 +50,7 @@ export default function UserPage() {
                 <p>You don't have the required role to access this page.</p>
                 <Button 
                     onClick={() => router.push("/login")}
+                    className="mt-4"
                 >
                     Go to Login
                 </Button>

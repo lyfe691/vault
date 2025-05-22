@@ -36,6 +36,7 @@ export default function AdminPage() {
                 <p>You need to be authenticated to view this page.</p>
                 <Button
                     onClick={() => router.push("/login")}
+                    className="mt-4"
                 >
                     Go to Login
                 </Button>
@@ -49,7 +50,7 @@ export default function AdminPage() {
                 <p>You don't have the required role to access this page.</p>
                 <Button 
                     onClick={() => router.push("/login")}
-                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    className="mt-4"
                 >
                     Go to Login
                 </Button>

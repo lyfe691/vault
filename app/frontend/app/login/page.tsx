@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import { AlertCircle } from "lucide-react";
+import { AuthApi } from "@/lib/api";
+import { toast } from "sonner";
 
 export default function LoginPage() {
     const [username, setUsername] = useState("");
@@ -13,45 +15,49 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const router = useRouter();
-    const { isAuthenticated, isLoading, refreshAuth } = useAuth();
+    const { isAuthenticated, isLoading, refreshAuth, getRedirectPath } = useAuth();
 
     useEffect(() => {
         if (!isLoading && isAuthenticated) {
-            router.push("/user");
+            const redirectPath = getRedirectPath();
+            router.push(redirectPath);
         }
-    }, [isLoading, isAuthenticated, router]);
+    }, [isLoading, isAuthenticated, router, getRedirectPath]);
 
     const handleLogin = async () => {
+        if (!username || !password) {
+            setError("Username and password are required");
+            return;
+        }
+
         setLoading(true);
         setError("");
         try {
-            const res = await fetch("http://localhost:5000/login", {
-                method: "POST", 
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                credentials: 'include', // Important: This sends and receives cookies
-                body: new URLSearchParams({
-                    username, 
-                    password,
-                }),
-            });
+            await AuthApi.login({ username, password });
             
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error_description || "Login failed");
-            }
-            
+            // Successfully logged in, refresh authentication state
             await refreshAuth();
             
-            router.push("/user");
+            // Get appropriate redirect path based on user roles
+            const redirectPath = getRedirectPath();
+            toast.success("Login successful");
+            
+            // Redirect to the appropriate page
+            router.push(redirectPath);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Something went wrong";
             setError(message);
+            toast.error("Login failed");
         } finally {
             setLoading(false);
         }
     }
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleLogin();
+        }
+    };
 
     if (isLoading) {
         return (
@@ -73,6 +79,7 @@ export default function LoginPage() {
                 className="mb-4"
                 required
                 disabled={loading}
+                onKeyDown={handleKeyDown}
             />
 
             <Input
@@ -83,6 +90,7 @@ export default function LoginPage() {
                 className="mb-4"
                 required
                 disabled={loading}
+                onKeyDown={handleKeyDown}
             />
 
             <Button onClick={handleLogin} disabled={loading} className="w-full">
